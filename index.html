@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>HUB Financiero — v2 (fix)</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--accent:#1f3a93;--accent-dark:#162b66;--bg1:#e9f0fb;--card:#ffffffee;--green:#16a34a;--red:#ef4444;--text:#16232b;--text-dark:#e6eef8;--shadow:rgba(0,0,0,0.08);}*
+{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:linear-gradient(135deg,var(--bg1),#f7fbff);color:var(--text);padding:15px;min-height:100vh;transition:background .25s,color .25s}
+body.dark{background:linear-gradient(135deg,#0f1724,#11121a);color:var(--text-dark)}
+header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:15px}
+.main-title{font-size:36px;font-weight:900;background:linear-gradient(90deg,#4f9efc,#1f3a93);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-shadow:1px 1px 4px rgba(0,0,0,.12)}
+.tabs{display:flex;gap:6px}
+.tabs button{padding:6px 10px;border:none;border-radius:8px;cursor:pointer;font-weight:600;background:#f1f4fb;transition:.2s;font-size:13px}
+.tabs button.active{background:var(--accent);color:white}
+.small-btn{padding:6px 10px;border:none;border-radius:8px;cursor:pointer;font-weight:600;background:var(--accent);color:white;transition:.2s;font-size:13px}
+.small-btn:hover{opacity:.9}
+.danger{background:#c0392b}
+form#formAgregar{background:var(--card);padding:12px;border-radius:12px;box-shadow:0 6px 18px var(--shadow);display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;align-items:end;max-width:980px;margin:auto}
+body.dark form#formAgregar{background:rgba(26,34,48,.95)}
+form label{display:flex;flex-direction:column;font-weight:600;font-size:12px;color:inherit}
+form input,form select{padding:8px;border-radius:8px;border:1px solid #cddaf0;margin-top:3px;font-size:13px;transition:.15s}
+form input:hover,form select:hover{border-color:#a7b7d9}
+form input:focus,form select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(31,58,147,.13)}
+form button{padding:10px 14px;border:none;background:var(--accent);color:white;font-weight:700;border-radius:8px;cursor:pointer;grid-column:1/-1;font-size:14px}
+.kpi-container{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.kpi-card{flex:1;min-width:140px;background:rgba(255,255,255,.85);backdrop-filter:blur(5px);padding:10px;border-radius:10px;text-align:center;box-shadow:0 4px 12px var(--shadow);font-size:13px;position:relative}
+body.dark .kpi-card{background:rgba(17,24,39,.85)}
+.kpi-value{font-weight:700;font-size:16px;margin-top:4px;display:flex;align-items:center;justify-content:center;gap:6px}
+.positive{color:var(--green)}.negative{color:var(--red)}
+.card{background:rgba(255,255,255,.75);backdrop-filter:blur(6px);border-radius:12px;margin-top:12px;box-shadow:0 6px 16px var(--shadow);padding:12px;transition:all .2s}
+body.dark .card{background:rgba(17,24,39,.75)}
+.card h3{color:var(--accent);margin-bottom:8px;font-size:18px}
+table{width:100%;border-collapse:collapse;margin-top:6px;font-size:13px;transition:all .2s}
+thead th{background:var(--accent);color:white;padding:6px;font-weight:700;text-align:center}
+tbody td{padding:6px;text-align:center;border-bottom:1px solid #e3e9f5;transition:all .2s}
+tbody tr:nth-child(even) td{background:#f5f8ff}
+body.dark tbody tr:nth-child(even) td{background:#1d2430}
+tbody tr:last-child{font-weight:600;background:rgba(31,58,147,.1)}
+tbody tr:hover{background:rgba(31,58,147,.08);cursor:pointer}
+.chart-container{position:relative;height:260px;padding:8px;margin-top:12px;display:flex;gap:10px;flex-wrap:wrap}
+.tab-content{display:none}
+.tab-content.active{display:block}
+#searchBox{margin-bottom:12px;padding:8px 10px;width:100%;max-width:400px;font-size:13px;border-radius:8px;border:1px solid #cddaf0}
+body.dark #searchBox{background:#1d2430;color:var(--text-dark)}
+.full-center{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;text-align:center;width:100%}
+@media (max-width:760px){.chart-container{flex-direction:column;height:auto}}
+</style>
+</head>
+<body>
+<script>
+const STORAGE_KEY = 'hubFinanciero_v8';
+const THEME_KEY = 'hubTheme';
+const DEFAULT_DATA = {
+  "BBVA":[{"mes":"2025-12","tipo":"Corriente","balance":1000,"rentabilidad":null},{"mes":"2025-11","tipo":"Inversión","balance":500,"rentabilidad":2.5}],
+  "Santander":[{"mes":"2025-12","tipo":"Corriente","balance":2000,"rentabilidad":null},{"mes":"2025-11","tipo":"Inversión","balance":800,"rentabilidad":3.2}],
+  "Caixa":[{"mes":"2025-12","tipo":"Corriente","balance":1500,"rentabilidad":null},{"mes":"2025-11","tipo":"Inversión","balance":600,"rentabilidad":2.1}]
+};
+function initStorage(){try{if(!localStorage.getItem(STORAGE_KEY)) localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_DATA));}catch(e){console.error('LocalStorage no disponible',e);}}
+initStorage();
+let bancos = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+let globalCharts = {};
+let theme = localStorage.getItem(THEME_KEY) || 'light'; if(theme==='dark') document.body.classList.add('dark');
+</script>
+
+<header>
+  <h1 class="main-title">📊 HUB Financiero</h1>
+  <div class="tabs">
+    <button class="active" onclick="switchTab('corrientes')">Cuentas Corrientes</button>
+    <button onclick="switchTab('inversiones')">Inversiones</button>
+    <button onclick="switchTab('global')">Global / Resumen</button>
+  </div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;">
+    <button class="small-btn" onclick="toggleTheme()">🌙/☀️</button>
+    <button class="small-btn" onclick="exportCSV()">📁 CSV</button>
+    <button class="small-btn" onclick="exportExcel()">📁 Excel</button>
+    <button class="small-btn" onclick="exportJSON()">💾 JSON</button>
+    <button class="small-btn" onclick="importJSON()">📂 Importar</button>
+    <button class="small-btn danger" onclick="resetAll()">🗑️ Reset</button>
+  </div>
+</header>
+
+<input type="text" id="searchBox" placeholder="🔍 Buscar banco..." oninput="filterBanks()">
+
+<div class="kpi-container" id="kpiContainer">
+  <div class="kpi-card">
+    <div>Total Corriente</div>
+    <div class="kpi-value" id="kpiCorriente">-</div>
+  </div>
+  <div class="kpi-card">
+    <div>Total Inversión (saldo)</div>
+    <div class="kpi-value" id="kpiInversion">-</div>
+  </div>
+  <div class="kpi-card">
+    <div>Rent. media ponderada (%)</div>
+    <div class="kpi-value" id="kpiRentMedia">-</div>
+  </div>
+  <div class="kpi-card">
+    <div>Patrimonio Total</div>
+    <div class="kpi-value" id="kpiTotal">-</div>
+  </div>
+</div>
+
+<form id="formAgregar">
+  <label>Banco<input id="banco" type="text" required placeholder="Ej: BBVA"></label>
+  <label>Mes<input id="mes" type="month" required></label>
+  <label>Tipo<select id="tipo"><option>Corriente</option><option>Inversión</option></select></label>
+  <label>Balance<input id="balance" type="number" step="0.01" required></label>
+  <label id="rentabilidadLabel" class="full-center">Rentabilidad (%)<input id="rentabilidad" type="number" step="0.01" placeholder="Opcional"></label>
+  <button type="submit">Agregar / Actualizar</button>
+</form>
+
+<div id="corrientes" class="tab-content active"></div>
+<div id="inversiones" class="tab-content"></div>
+<div id="global" class="tab-content"></div>
+
+<footer style="text-align:center;margin-top:12px;font-size:12px;color:#73819c;">Datos guardados en localStorage (solo en este navegador)</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script>
+function save(){try{localStorage.setItem(STORAGE_KEY, JSON.stringify(bancos));}catch(e){console.error('No se pudo guardar',e);} }
+function resetAll(){ if(!confirm('¿Eliminar todo? Esto reseteará los datos a vacío.')) return; bancos={}; save(); renderAll(); }
+function numFmt(n){return (n==null||n==='')?'-':Number(n).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';}
+function formatMonth(iso){if(!iso) return '-';const [y,m]=iso.split('-');return `${m}/${y.slice(2)}`;}
+function uniqueMonthsAsc(){const s=new Set();for(const b in bancos) bancos[b].forEach(r=>s.add(r.mes));return [...s].filter(Boolean).sort((a,b)=>a.localeCompare(b));}
+
+const form = document.getElementById('formAgregar');
+form.onsubmit = function(e){ e.preventDefault(); const b=document.getElementById('banco').value.trim(); const mes=document.getElementById('mes').value; const tipo=document.getElementById('tipo').value; const balance=Number(document.getElementById('balance').value); const rent=document.getElementById('rentabilidad').value; const rentNum = rent===''?null:Number(rent);
+  if(!b||!mes||Number.isNaN(balance)){ alert('Completa los campos requeridos'); return; }
+  const existingIndex = bancos[b] ? bancos[b].findIndex(r=>r.mes===mes && r.tipo===tipo) : -1;
+  if(existingIndex>-1){ if(!confirm('Ya existe una entrada para este banco/mes/tipo. ¿Deseas sobrescribirla?')) return; bancos[b][existingIndex]={mes,tipo,balance,rentabilidad:rentNum}; }
+  else { if(!bancos[b]) bancos[b]=[]; bancos[b].push({mes,tipo,balance,rentabilidad:rentNum}); }
+  save(); renderAll(); this.reset(); };
+
+function deleteRow(banco,entryMes,entryTipo,entryBalance,entryRent){ if(!confirm('¿Eliminar fila?')) return; const idx=bancos[banco].findIndex(r=>r.mes===entryMes && r.tipo===entryTipo && Number(r.balance)===Number(entryBalance) && (r.rentabilidad==null?entryRent==null:Number(r.rentabilidad)===Number(entryRent))); if(idx>-1){ bancos[banco].splice(idx,1); if(bancos[banco].length===0) delete bancos[banco]; save(); renderAll(); } else alert('No se encontró la entrada para borrar'); }
+
+function renderKPIs(){
+  // Mes más reciente global
+  const all = [];
+  for(const b in bancos) all.push(...bancos[b]);
+  if(all.length===0){ document.getElementById('kpiCorriente').innerText='-'; document.getElementById('kpiInversion').innerText='-'; document.getElementById('kpiTotal').innerText='-'; return; }
+  const lastMes = all.map(r=>r.mes).filter(Boolean).sort().slice(-1)[0];
+
+  let totalCorr=0, totalInv=0; let prevCorr=null, prevInv=null;
+  // For previous month we find the latest month < lastMes per bank
+  const months = uniqueMonthsAsc(); const prevGlobal = months.slice(-2)[0] || null;
+
+  for(const b in bancos){
+    const regs = bancos[b].filter(r=>r.mes===lastMes);
+    const prevRegs = bancos[b].filter(r=>r.mes===prevGlobal);
+    const corr = regs.find(r=>r.tipo==='Corriente');
+    const inv = regs.find(r=>r.tipo==='Inversión');
+    if(corr) totalCorr+=Number(corr.balance);
+    if(inv) totalInv+=Number(inv.balance);
+    if(prevRegs.length){ const pc = prevRegs.find(r=>r.tipo==='Corriente'); const pi = prevRegs.find(r=>r.tipo==='Inversión'); if(pc) prevCorr = (prevCorr||0)+Number(pc.balance); if(pi) prevInv = (prevInv||0)+Number(pi.balance); }
+  }
+
+  function trendHTML(value,last){ if(value==null) return '-'; const txt = numFmt(value); if(last==null) return txt; return value>=last?`<span class="positive">${txt} ↑</span>`:`<span class="negative">${txt} ↓</span>`; }
+  document.getElementById('kpiCorriente').innerHTML = trendHTML(totalCorr, prevCorr);
+  document.getElementById('kpiInversion').innerHTML = trendHTML(totalInv, prevInv);
+  // compute weighted average rentabilidad for lastMes
+  let wr=0, ws=0;
+  for(const b in bancos){ bancos[b].forEach(r=>{ if(r.mes===lastMes && r.tipo==='Inversión' && r.rentabilidad!=null){ wr += Number(r.balance)*Number(r.rentabilidad); ws += Number(r.balance); } }); }
+  let rentMediaHTML = '-';
+
+if (ws > 0) {
+    const rent = wr / ws;
+    const arrow = rent >= 0 ? '↑' : '↓';
+
+    rentMediaHTML = `<span class="${rent >= 0 ? 'positive' : 'negative'}">
+        ${rent.toFixed(2)} % ${arrow}
+    </span>`;
+}
+
+document.getElementById('kpiRentMedia').innerHTML = rentMediaHTML;
+
+  // 👉 KPI Patrimonio Total dinámico vs mes anterior
+const patrimonioActual = totalCorr + totalInv;
+const patrimonioPrevio = (prevCorr ?? 0) + (prevInv ?? 0);
+
+document.getElementById('kpiTotal').innerHTML =
+    trendHTML(patrimonioActual, patrimonioPrevio);
+}
+
+function switchTab(tab){ document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active')); document.getElementById(tab).classList.add('active'); document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active')); document.querySelector(`.tabs button[onclick*="${tab}"]`).classList.add('active'); const form=document.getElementById('formAgregar'); const tipo=document.getElementById('tipo'); const rent=document.getElementById('rentabilidadLabel'); if(tab==='global'){ form.style.display='none'; tipo.value=''; rent.style.display='flex'; } else { form.style.display='grid'; rent.style.display='flex'; if(tab==='inversiones') tipo.value='Inversión'; else tipo.value='Corriente'; } }
+
+function renderAll(){ renderKPIs(); ['corrientes','inversiones'].forEach(tab=>{ const cont=document.getElementById(tab); cont.innerHTML=''; const tipo = tab==='corrientes'?'Corriente':'Inversión'; for(const b in bancos){ const data = bancos[b].filter(r=>r.tipo===tipo); if(!data.length) continue; const card=document.createElement('div'); card.className='card'; card.innerHTML=`<h3>${b}</h3>`; const table=document.createElement('table'); table.innerHTML=`<thead><tr><th>Mes</th><th>Tipo</th><th>Balance</th><th>Rentabilidad</th><th>Resultado</th><th></th></tr></thead>`; const tbody=document.createElement('tbody'); const sorted = data.slice().sort((a,c)=>a.mes.localeCompare(c.mes)); sorted.forEach((r,i)=>{let resultado = null;
+const prev = sorted[i-1];
+if(prev) resultado = Number(r.balance) - Number(prev.balance);
+
+// === RENTABILIDAD DINÁMICA (PARCHE VERDE/ROJA) ===
+let rentHTML = '-';
+if(r.tipo==='Inversión' && r.rentabilidad != null) {
+    rentHTML = `<span class="${Number(r.rentabilidad)>=0?'positive':'negative'}">
+        ${Number(r.rentabilidad).toFixed(2)} %
+    </span>`;
+}
+
+let resHTML = '-';
+if(resultado != null) resHTML = `<span class="${resultado>=0?'positive':'negative'}">${numFmt(resultado)}</span>`;
+ const tr=document.createElement('tr'); tr.innerHTML = `<td>${formatMonth(r.mes)}</td><td>${r.tipo}</td><td>${numFmt(r.balance)}</td><td>${rentHTML}</td><td>${resHTML}</td><td><button class="small-btn danger">Borrar</button></td>`; tr.querySelector('button').onclick = ()=> deleteRow(b, r.mes, r.tipo, r.balance, r.rentabilidad); tbody.appendChild(tr); }); table.appendChild(tbody); card.appendChild(table);
+      const wrap=document.createElement('div'); wrap.className='chart-container'; const canvasLine=document.createElement('canvas'); const canvasBar=document.createElement('canvas'); canvasLine.style.flex='1'; canvasBar.style.flex='1'; wrap.appendChild(canvasLine); wrap.appendChild(canvasBar); card.appendChild(wrap); cont.appendChild(card);
+      const labels = sorted.map(x=>formatMonth(x.mes)); const values = sorted.map(x=> tipo==='Corriente'? Number(x.balance) : (x.rentabilidad==null? null:Number(x.rentabilidad)) ); const keyLine = `${b}-${tab}-line`; if(globalCharts[keyLine]) globalCharts[keyLine].destroy(); globalCharts[keyLine] = new Chart(canvasLine, { type:'line', data:{ labels, datasets:[{ data:values, tension:.25, borderWidth:2, pointRadius:3, borderColor:'#1f3a93', backgroundColor:'rgba(31,58,147,0.08)'}]}, options:{plugins:{legend:{display:false}}, scales:{ y: { beginAtZero:false } } } }); const keyBar = `${b}-${tab}-bar`; if(globalCharts[keyBar]) globalCharts[keyBar].destroy(); const bg = values.map((v,i)=>{ if(i===0) return '#16a34a'; const prev = values[i-1]; if(prev==null || v==null) return '#16a34a'; return v>=prev? '#16a34a':'#ef4444'; }); globalCharts[keyBar] = new Chart(canvasBar, { type:'bar', data:{ labels, datasets:[{ data:values, backgroundColor: bg }]}, options:{plugins:{legend:{display:false}}, scales:{ y: { beginAtZero:false } } } }); } } ); renderGlobal(); }
+
+function renderGlobal(){ const cont=document.getElementById('global'); cont.innerHTML=''; const months = uniqueMonthsAsc(); if(!months.length){ cont.innerHTML='<p>No hay datos</p>'; return; } const table=document.createElement('table'); table.innerHTML=`<thead><tr><th>Mes</th><th>Balance Corriente</th><th>Saldo Inversión</th><th>Rent. media (%)</th><th>Patrimonio Total</th></tr></thead>`; const tbody=document.createElement('tbody'); const globalValues=[]; months.forEach(m=>{ let sumCorr=0,sumInv=0, wr=0, ws=0; for(const b in bancos){ bancos[b].forEach(r=>{ if(r.mes===m){ if(r.tipo==='Corriente') sumCorr+=Number(r.balance); else { sumInv+=Number(r.balance); if(r.rentabilidad!=null){ wr += Number(r.balance)*Number(r.rentabilidad); ws += Number(r.balance); } } } }); } let rentMedia = ws>0 ? (wr/ws).toFixed(2) : '-';
+if(rentMedia !== '-') {
+    rentMedia = `<span class="${Number(rentMedia)>=0 ? 'positive' : 'negative'}">${rentMedia} %</span>`;
+}
+ const patrimonio = sumCorr + sumInv;
+const prevPatrimonio = globalValues.length
+    ? globalValues[globalValues.length - 1]
+    : null;
+
+let patrimonioHTML = numFmt(patrimonio);
+
+if (prevPatrimonio != null) {
+    patrimonioHTML = `<span class="${
+        patrimonio >= prevPatrimonio ? 'positive' : 'negative'
+    }">
+        ${numFmt(patrimonio)}
+    </span>`;
+}
+
+globalValues.push(patrimonio);
+
+const tr = document.createElement('tr');
+tr.innerHTML = `
+<td>${formatMonth(m)}</td>
+<td>${numFmt(sumCorr)}</td>
+<td>${numFmt(sumInv)}</td>
+<td>${rentMedia}</td>
+<td>${patrimonioHTML}</td>`;
+tbody.appendChild(tr);
+ }); table.appendChild(tbody); cont.appendChild(table); const card=document.createElement('div'); card.className='card'; card.innerHTML='<h3>📈 Patrimonio Total</h3>'; const wrap=document.createElement('div'); wrap.className='chart-container'; const canvasLine=document.createElement('canvas'); const canvasBar=document.createElement('canvas'); canvasLine.style.flex='1'; canvasBar.style.flex='1'; wrap.appendChild(canvasLine); wrap.appendChild(canvasBar); card.appendChild(wrap); cont.appendChild(card); if(globalCharts['global-line']) globalCharts['global-line'].destroy(); globalCharts['global-line'] = new Chart(canvasLine, { type:'line', data:{ labels: months.map(formatMonth), datasets:[{ data: globalValues, tension:.25, borderWidth:2, pointRadius:3, borderColor:'#1f3a93', backgroundColor:'rgba(31,58,147,0.08)'}]}, options:{plugins:{legend:{display:false}}, scales:{ y: { beginAtZero:false } } } }); if(globalCharts['global-bar']) globalCharts['global-bar'].destroy(); const bg = globalValues.map((v,i)=> i===0? '#16a34a' : (v>=globalValues[i-1]? '#16a34a':'#ef4444')); globalCharts['global-bar'] = new Chart(canvasBar, { type:'bar', data:{ labels: months.map(formatMonth), datasets:[{ data: globalValues, backgroundColor: bg }]}, options:{plugins:{legend:{display:false}}, scales:{ y: { beginAtZero:false } } } }); }
+
+function exportCSV(){ let csv='Banco,Mes,Tipo,Balance,Rentabilidad\n'; for(const b in bancos) bancos[b].forEach(r=> csv+=`${b},${r.mes},${r.tipo},${r.balance},${r.rentabilidad??''}\n`); const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='hub_financiero.csv'; a.click(); }
+function exportExcel(){ const wb=XLSX.utils.book_new(); for(const b in bancos){ const sheet = bancos[b].map(r=>({Mes:r.mes,Tipo:r.tipo,Balance:r.balance,Rentabilidad:r.rentabilidad==null?'':r.rentabilidad})); XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(sheet),b);} const months = uniqueMonthsAsc(); const globalRows = months.map(m=>{ let sumCorr=0,sumInv=0,wr=0,ws=0; for(const b in bancos){ bancos[b].forEach(r=>{ if(r.mes===m){ if(r.tipo==='Corriente') sumCorr+=Number(r.balance); else { sumInv+=Number(r.balance); if(r.rentabilidad!=null){ wr+=Number(r.balance)*Number(r.rentabilidad); ws+=Number(r.balance); } } } }); } const rent = ws>0? (wr/ws).toFixed(2):''; return {Mes:m,BalanceCorriente:sumCorr,SaldoInversion:sumInv,RentMediaPorc:rent,Patrimonio:sumCorr+sumInv}; }); XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(globalRows),'Global'); XLSX.writeFile(wb,'hub_financiero_v2.xlsx'); }
+function exportJSON(){ const blob=new Blob([JSON.stringify(bancos,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='finanzas_v2.json'; a.click(); }
+function importJSON(){ const input=document.createElement('input'); input.type='file'; input.accept='.json'; input.onchange=e=>{ const file=e.target.files[0]; if(!file) return; const reader=new FileReader(); reader.onload=ev=>{ try{ const parsed=JSON.parse(ev.target.result); if(typeof parsed!=='object') throw new Error('JSON no válido'); bancos=parsed; save(); renderAll(); alert('Importado correctamente'); }catch(err){ alert('JSON inválido: '+err.message); } }; reader.readAsText(file); }; input.click(); }
+function filterBanks(){ const q=document.getElementById('searchBox').value.toLowerCase(); document.querySelectorAll('.card').forEach(c=>{ c.style.display = c.querySelector('h3').textContent.toLowerCase().includes(q)?'block':'none'; }); }
+function toggleTheme(){ document.body.classList.toggle('dark'); theme = document.body.classList.contains('dark')?'dark':'light'; try{ localStorage.setItem(THEME_KEY,theme);}catch(e){} }
+function detectPotentialIssues(){ for(const b in bancos){ bancos[b].forEach((r,i)=>{ if(!r.mes) console.warn(`Banco ${b} entrada ${i} sin campo 'mes'`); if(!['Corriente','Inversión'].includes(r.tipo)) console.warn(`Banco ${b} entrada ${i} tipo inesperado: ${r.tipo}`); if(r.tipo==='Inversión' && (r.rentabilidad==null || isNaN(r.rentabilidad))) console.info(`Banco ${b} mes ${r.mes}: inversión sin rentabilidad registrada`); }); } }
+
+detectPotentialIssues(); renderAll();
+</script>
+</body>
+</html>
+
