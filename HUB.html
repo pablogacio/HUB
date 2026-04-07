@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<title>HUB Financiero Pro</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<style>
+/* ===== MOBILE FIXES ===== */
+html, body {
+  height: 100%;
+}
+body {
+  min-height: 100dvh;
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior-y: contain;
+}
+
+input, select, textarea {
+  font-size:16px !important;
+}
+
+body, .sidebar, .table-wrap {
+  -webkit-overflow-scrolling: touch;
+}
+
+canvas {
+  max-width:100% !important;
+  height:auto !important;
+}
+
+button, .btn, .nav-btn, .bn-btn {
+  touch-action: manipulation;
+}
+
+.overlay {
+  pointer-events:none;
+}
+.overlay.on {
+  pointer-events:auto;
+}
+
+.bottom-nav {
+  padding-bottom:calc(env(safe-area-inset-bottom,0px));
+}
+
+@media (max-width:480px){
+  .kpi-grid {grid-template-columns:1fr;}
+  .topbar {height:50px;}
+  .chart-box canvas {max-height:120px;}
+  .g-chart-big canvas {max-height:160px;}
+}
+/* ════════════════════════════════
+   TOKENS
+════════════════════════════════ */
+:root{
+  --bg:#f1f5f4;--surface:#fff;--surface2:#f7faf9;--border:#e0e8e4;
+  --text:#0e1f1a;--muted:#6a8880;
+  --primary:#0a5c4a;--primary-l:#0d7a62;--primary-xl:#e6f4f0;
+  --accent:#c9f169;
+  --green:#16a34a;--green-bg:#dcfce7;
+  --red:#dc2626;--red-bg:#fee2e2;
+  --amber:#d97706;--amber-bg:#fef3c7;
+  --mono:'JetBrains Mono',monospace;
+  --sans:'Sora',sans-serif;
+  --r:14px;
+  --sh:0 4px 24px rgba(10,92,74,.07);
+  --sh-lg:0 12px 48px rgba(10,92,74,.12);
+}
+[data-theme="dark"]{
+  --bg:#0b1512;--surface:#111e1a;--surface2:#162019;--border:#1e3029;
+  --text:#d4e8e0;--muted:#5a8070;
+  --primary:#2dd4a8;--primary-l:#4eedbe;--primary-xl:#0d2820;
+  --green:#22c55e;--green-bg:#052e16;
+  --red:#f87171;--red-bg:#450a0a;
+  --amber:#fbbf24;--amber-bg:#451a03;
+  --sh:0 4px 24px rgba(0,0,0,.3);--sh-lg:0 12px 48px rgba(0,0,0,.4);
+}
+
+/* ════════════════════════════════
+   RESET
+════════════════════════════════ */
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{height:100%}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100%;overflow-x:hidden;transition:background .3s,color .3s}
+
+/* ════════════════════════════════
+   LAYOUT
+════════════════════════════════ */
+.layout{display:flex;min-height:100vh}
+
+/* ── Sidebar ── */
+.sidebar{
+  width:248px;flex-shrink:0;
+  background:#0e2b22;
+  display:flex;flex-direction:column;
+  padding:28px 0 0;
+  position:fixed;top:0;left:0;bottom:0;z-index:300;
+  transition:transform .28s cubic-bezier(.4,0,.2,1);
+  box-shadow:4px 0 24px rgba(0,0,0,.2);
+  overflow-y:auto;overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+}
+.sidebar{
+  width:248px;
+  flex-shrink:0;
+  background:#0e2b22;
+  display:flex;
+  flex-direction:column;
+  padding:28px 0 0;
+  position:fixed;
+  top:0;
+  left:0;
+  bottom:0;
+  z-index:300;
+  transition:transform .28s cubic-bezier(.4,0,.2,1);
+  box-shadow:4px 0 24px rgba(0,0,0,.2);
+
+  overflow-y:auto;
+  overflow-x:hidden;
+
+  /* 🔥 AÑADE ESTO */
+  -webkit-overflow-scrolling: touch;
+  height: 100dvh;
+}
+[data-theme="dark"] .sidebar{background:#0d1f1a;border-right:1px solid #1a3028}
+
+.sidebar-logo{padding:0 24px 22px;border-bottom:1px solid rgba(255,255,255,.07);flex-shrink:0}
+.logo-mark{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#c9f169;margin-bottom:4px}
+.logo-name{font-size:20px;font-weight:800;color:#fff;letter-spacing:-.5px;line-height:1.1}
+.logo-sub{font-size:11px;color:rgba(255,255,255,.35);margin-top:2px}
+
+.nav-section{padding:16px 16px 4px;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.25)}
+.nav-btn{
+  display:flex;align-items:center;gap:10px;
+  margin:2px 10px;padding:11px 14px;
+  border-radius:10px;border:none;background:none;cursor:pointer;
+  color:rgba(255,255,255,.55);font-family:var(--sans);font-size:13px;font-weight:500;
+  transition:all .18s;text-align:left;width:calc(100% - 20px);min-height:44px;
+}
+.nav-btn:hover{background:rgba(255,255,255,.07);color:#fff}
+.nav-btn.active{background:rgba(255,255,255,.11);color:#fff;font-weight:700}
+.nav-icon{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;background:rgba(255,255,255,.07);flex-shrink:0}
+.nav-btn.active .nav-icon{background:#c9f169}
+
+.sidebar-bottom{margin-top:auto;padding:14px;border-top:1px solid rgba(255,255,255,.07);display:flex;flex-direction:column;gap:7px;flex-shrink:0}
+.sb-action{
+  display:flex;align-items:center;gap:8px;
+  padding:10px 12px;border-radius:9px;
+  border:1px solid rgba(255,255,255,.1);
+  background:none;cursor:pointer;
+  color:rgba(255,255,255,.55);font-family:var(--sans);font-size:12px;font-weight:500;
+  transition:all .18s;width:100%;min-height:42px;
+}
+.sb-action:hover{background:rgba(255,255,255,.07);color:#fff}
+.sb-action.demo{border-color:rgba(201,241,105,.25);color:#c9f169;font-weight:600}
+.sb-action.demo:hover{background:rgba(201,241,105,.1)}
+.sb-action.demo.on{background:rgba(201,241,105,.14);border-color:rgba(201,241,105,.4)}
+.sb-action.danger{border-color:rgba(220,38,38,.2)}
+.sb-action.danger:hover{background:rgba(220,38,38,.18);color:#f87171}
+
+/* ── Overlay ── */
+.overlay{position:fixed;inset:0;z-index:299;background:rgba(0,0,0,.52);backdrop-filter:blur(2px);display:none;opacity:0;transition:opacity .28s}
+.overlay.on{display:block;opacity:1}
+
+/* ── Main ── */
+.main{margin-left:248px;flex:1;display:flex;flex-direction:column;min-height:100vh}
+
+/* ── Topbar ── */
+.topbar{
+  position:sticky;top:0;z-index:50;
+  background:rgba(241,245,244,.93);backdrop-filter:blur(18px);
+  border-bottom:1px solid var(--border);
+  padding:0 28px;display:flex;align-items:center;gap:12px;height:60px;
+  transition:background .3s;
+}
+[data-theme="dark"] .topbar{background:rgba(11,21,18,.93)}
+.tb-title{font-size:14px;font-weight:700;white-space:nowrap}
+.tb-sub{font-size:11px;color:var(--muted)}
+.topbar-spacer{flex:1}
+.search-wrap{
+  display:flex;align-items:center;gap:8px;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:10px;padding:8px 13px;
+  transition:border-color .2s;min-width:180px;max-width:240px;
+}
+.search-wrap:focus-within{border-color:var(--primary)}
+.search-wrap svg{color:var(--muted);flex-shrink:0}
+.search-wrap input{border:none;background:none;outline:none;font-family:var(--sans);font-size:13px;color:var(--text);width:100%}
+.search-wrap input::placeholder{color:var(--muted)}
+.icon-btn{
+  width:36px;height:36px;min-width:36px;border-radius:9px;
+  border:1px solid var(--border);background:var(--surface);
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-size:16px;transition:all .18s;
+}
+.icon-btn:hover{background:var(--primary-xl)}
+#menuBtn{display:none}
+
+/* ── KPI strip ── */
+.kpi-wrap{padding:18px 28px 0}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.kpi-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r);padding:18px 16px;
+  position:relative;overflow:hidden;transition:box-shadow .2s,transform .2s;
+}
+.kpi-card:hover{box-shadow:var(--sh-lg);transform:translateY(-2px)}
+.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--primary),var(--primary-l))}
+.kpi-badge{position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:8px;background:var(--primary-xl);display:flex;align-items:center;justify-content:center;font-size:15px}
+.kpi-lbl{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:7px}
+.kpi-val{font-family:var(--mono);font-size:19px;font-weight:600;color:var(--text)}
+.kpi-trend{font-size:10px;display:flex;align-items:center;gap:3px;margin-top:3px;font-weight:500}
+.kpi-trend.up{color:var(--green)}.kpi-trend.down{color:var(--red)}
+
+/* ── Pages ── */
+.page{display:none;padding:22px 28px;animation:fadeUp .22s ease}
+.page.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+
+/* ── Section header ── */
+.sec-head{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.sec-title{font-size:15px;font-weight:700}
+.sec-sub{font-size:11px;color:var(--muted)}
+
+/* ── Form panel ── */
+.form-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:16px}
+.fp-head{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-bottom:1px solid var(--border);background:var(--surface2);cursor:pointer;user-select:none}
+.fp-head h3{font-size:12px;font-weight:700}
+.fp-arrow{color:var(--muted);font-size:15px;transition:transform .22s}
+.fp-head.closed .fp-arrow{transform:rotate(-90deg)}
+.fp-body{padding:16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;align-items:end}
+.fp-body.closed{display:none}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
+.field input,.field select{padding:10px 13px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px;outline:none;transition:border-color .2s;min-height:42px}
+.field input:focus,.field select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(10,92,74,.08)}
+.field input::placeholder{color:var(--muted)}
+
+/* ── Buttons ── */
+.btn{padding:10px 16px;border-radius:10px;border:none;cursor:pointer;font-family:var(--sans);font-size:13px;font-weight:600;transition:all .18s;display:inline-flex;align-items:center;gap:6px;min-height:42px}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-primary:hover{background:var(--primary-l);box-shadow:0 4px 12px rgba(10,92,74,.3)}
+.btn-xs{padding:4px 8px;font-size:11px;border-radius:7px;min-height:26px}
+.btn-danger{background:var(--red-bg);color:var(--red)}
+.btn-danger:hover{background:var(--red);color:#fff}
+
+/* ── Bank cards ── */
+.banks-grid{display:flex;flex-direction:column;gap:13px}
+.bank-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;animation:fadeUp .22s ease backwards}
+.bch{display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--border);background:var(--surface2);cursor:pointer;user-select:none}
+.bavatar{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,var(--primary),var(--primary-l));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:13px;flex-shrink:0}
+.bname{font-size:13px;font-weight:700}
+.bmeta{font-size:11px;color:var(--muted);margin-top:1px}
+.bsum{margin-left:auto;text-align:right}
+.bbal{font-family:var(--mono);font-size:13px;font-weight:600}
+.bexp{color:var(--muted);font-size:15px;margin-left:8px;transition:transform .22s;flex-shrink:0}
+.bch.open .bexp{transform:rotate(180deg)}
+.bbody{max-height:0;overflow:hidden;transition:max-height .35s cubic-bezier(.4,0,.2,1)}
+.bbody.open{max-height:9999px;transition:max-height .5s cubic-bezier(.4,0,.2,1)}
+
+/* ── Table ── */
+.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{background:var(--surface2);color:var(--muted);font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:9px 13px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap}
+thead th:first-child{text-align:left}
+tbody td{padding:10px 13px;text-align:right;border-bottom:1px solid var(--border);transition:background .12s}
+tbody td:first-child{text-align:left;font-weight:600}
+tbody tr:hover td{background:var(--primary-xl)}
+tbody tr:last-child td{border-bottom:none}
+tfoot td{padding:9px 13px;text-align:right;background:var(--surface2);font-weight:700;font-size:11px;color:var(--muted);border-top:1px solid var(--border);font-family:var(--mono)}
+tfoot td:first-child{text-align:left}
+
+/* ── Chips ── */
+.chip{display:inline-flex;align-items:center;gap:3px;padding:3px 7px;border-radius:20px;font-size:11px;font-weight:600}
+.chip-green{background:var(--green-bg);color:var(--green)}
+.chip-red{background:var(--red-bg);color:var(--red)}
+.chip-gray{background:var(--surface2);color:var(--muted);border:1px solid var(--border)}
+
+/* ── Charts inside cards ── */
+.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:16px}
+.chart-box{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:13px}
+.chart-box canvas{max-height:170px}
+.chart-lbl{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:7px}
+
+/* ── Global page ── */
+.g-stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-bottom:13px}
+.g-chart-big{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px;margin-bottom:13px}
+.g-chart-big canvas{max-height:230px}
+.g-charts-2{display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-bottom:13px}
+.g-chart-sm{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px}
+.g-chart-sm canvas{max-height:180px}
+.g-stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px 16px;position:relative;overflow:hidden;transition:box-shadow .2s,transform .2s}
+.g-stat-card:hover{box-shadow:var(--sh);transform:translateY(-1px)}
+.g-stat-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--primary),var(--primary-l));opacity:.4}
+.gs-icon{font-size:22px;margin-bottom:9px;display:block}
+.gs-lbl{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:7px}
+.gs-val{font-family:var(--mono);font-size:32px;font-weight:700;line-height:1;letter-spacing:-1px}
+.gs-val-sm{font-family:var(--mono);font-size:15px;font-weight:700;line-height:1.3;white-space:pre-line}
+.gs-sub{font-size:9px;color:var(--muted);margin-top:4px}
+.g-table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+
+/* ── Toast ── */
+.toast-container{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast{background:var(--text);color:var(--bg);padding:11px 16px;border-radius:10px;font-size:13px;font-weight:500;box-shadow:var(--sh-lg);animation:toastIn .22s ease;max-width:300px;pointer-events:all}
+.toast.ok{background:var(--green)}.toast.err{background:var(--red)}
+@keyframes toastIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* ── Empty state ── */
+.empty{text-align:center;padding:44px 20px;color:var(--muted)}
+.empty-icon{font-size:36px;margin-bottom:9px}
+.empty-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px}
+.empty-sub{font-size:12px;line-height:1.6}
+
+/* ── Mobile bottom nav ── */
+.bottom-nav{
+  display:none;position:fixed;bottom:0;left:0;right:0;z-index:400;
+  background:#0e2b22;border-top:1px solid rgba(255,255,255,.08);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+[data-theme="dark"] .bottom-nav{background:#0d1f1a}
+.bn-inner{display:flex;height:58px}
+.bn-btn{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:2px;border:none;background:none;cursor:pointer;
+  color:rgba(255,255,255,.4);font-family:var(--sans);
+  font-size:9px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;
+  padding:6px 2px;transition:color .18s;
+}
+.bn-btn.active{color:#c9f169}
+.bn-icon{font-size:20px;line-height:1;transition:transform .18s}
+.bn-btn.active .bn-icon{transform:scale(1.1)}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px}
+
+/* ════════════════════════════════
+   RESPONSIVE
+════════════════════════════════ */
+@media(max-width:768px){
+  /* Sidebar becomes a drawer */
+  .sidebar{transform:translateX(-260px);width:260px}
+  .sidebar.open{transform:translateX(0)}
+  .overlay{display:block} /* always in DOM, shown when .on */
+
+  /* Main */
+  .main{margin-left:0;padding-bottom:calc(58px + env(safe-area-inset-bottom,0px))}
+
+  /* Topbar */
+  .topbar{padding:0 14px;height:52px}
+  .tb-sub{display:none}
+  .topbar .search-wrap{display:none}
+  #menuBtn{display:flex!important}
+
+  /* KPIs */
+  .kpi-wrap{padding:12px 14px 0}
+  .kpi-grid{grid-template-columns:1fr 1fr;gap:10px}
+  .kpi-card{padding:12px 11px}
+  .kpi-badge{width:26px;height:26px;font-size:13px;top:10px;right:10px}
+  .kpi-val{font-size:16px}
+  .kpi-trend{font-size:9px}
+  .kpi-lbl{font-size:8px;margin-bottom:6px}
+
+  /* Pages */
+  .page{padding:12px 14px}
+
+  /* Global */
+  .g-stat-grid{grid-template-columns:1fr 1fr;gap:10px}
+  .g-stat-card{padding:14px 12px}
+  .gs-icon{font-size:18px;margin-bottom:7px}
+  .gs-val{font-size:24px}
+  .gs-val-sm{font-size:13px}
+  .gs-sub{font-size:8px}
+  .g-chart-big canvas{max-height:180px}
+  .g-charts-2{grid-template-columns:1fr}
+  .g-chart-sm canvas{max-height:150px}
+
+  /* Bank cards */
+  .bch{padding:12px 14px;gap:10px}
+  .bavatar{width:34px;height:34px;font-size:12px}
+  .bname{font-size:13px}
+  .bbal{font-size:12px}
+
+  /* Charts in cards: stack vertically */
+  .charts-row{grid-template-columns:1fr;padding:12px;gap:10px}
+  .chart-box canvas{max-height:140px}
+
+  /* Tables */
+  table{font-size:12px}
+  thead th{padding:8px 10px;font-size:8px}
+  tbody td{padding:8px 10px}
+  tfoot td{padding:8px 10px}
+
+  /* Form */
+  .fp-body{grid-template-columns:1fr;gap:10px;padding:14px}
+  .fp-head{padding:12px 14px}
+  .fp-head h3{font-size:11px}
+
+  /* Mobile search visible */
+  .mobile-search{display:flex!important}
+
+  /* Chips smaller */
+  .chip{font-size:10px;padding:2px 6px}
+
+  /* Toast above bottom nav */
+  .toast-container{bottom:calc(66px + env(safe-area-inset-bottom,0px));right:14px;left:14px}
+  .toast{max-width:100%}
+
+  /* Bottom nav */
+  .bottom-nav{display:block}
+}
+
+@media(max-width:360px){
+  .kpi-val{font-size:13px}
+  .bsum{display:none}
+  .g-stat-grid{grid-template-columns:1fr}
+}
+
+@media(min-width:769px){
+  .bottom-nav{display:none!important}
+  .mobile-search{display:none!important}
+  #menuBtn{display:none!important}
+  .overlay{pointer-events:none;opacity:0!important}
+}
+/* ===== FIX RESUMEN GLOBAL MOBILE ===== */
+.g-chart-big,
+.g-chart-sm,
+.g-table-wrap {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.g-chart-big canvas,
+.g-chart-sm canvas {
+  width: 100% !important;
+}
+
+.g-table-wrap {
+  overflow-x: auto;
+}
+
+/* evita que algo rompa el viewport */
+.main, .page {
+  overflow-x: hidden;
+}
+.sidebar.open {
+  touch-action: pan-y;
+}
+</style>
+</head>
+<body>
+
+<!-- Tap-outside to close sidebar -->
+<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+
+<!-- Mobile bottom navigation -->
+<nav class="bottom-nav">
+  <div class="bn-inner">
+    <button class="bn-btn active" id="bnGlobal" onclick="mobileTab('global',this)">
+      <span class="bn-icon">⬛</span><span>Global</span>
+    </button>
+    <button class="bn-btn" id="bnCorrientes" onclick="mobileTab('corrientes',this)">
+      <span class="bn-icon">🏦</span><span>Corriente</span>
+    </button>
+    <button class="bn-btn" id="bnInversiones" onclick="mobileTab('inversiones',this)">
+      <span class="bn-icon">📈</span><span>Inversión</span>
+    </button>
+    <button class="bn-btn" id="bnMenu" onclick="openSidebar()">
+      <span class="bn-icon">☰</span><span>Más</span>
+    </button>
+  </div>
+</nav>
+
+<div class="layout">
+
+<!-- ════ SIDEBAR ════ -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">// HUB Pro</div>
+    <div class="logo-name">Financiero</div>
+    <div class="logo-sub">Panel personal</div>
+  </div>
+
+  <div class="nav-section">Vistas</div>
+  <button class="nav-btn active" data-tab="global" onclick="desktopTab('global',this)">
+    <div class="nav-icon">⬛</div>Resumen Global
+  </button>
+  <button class="nav-btn" data-tab="corrientes" onclick="desktopTab('corrientes',this)">
+    <div class="nav-icon">🏦</div>Cuentas Corrientes
+  </button>
+  <button class="nav-btn" data-tab="inversiones" onclick="desktopTab('inversiones',this)">
+    <div class="nav-icon">📈</div>Inversiones
+  </button>
+
+  <div class="nav-section">Datos</div>
+  <button class="nav-btn" onclick="exportCSV()"><div class="nav-icon">📄</div>Exportar CSV</button>
+  <button class="nav-btn" onclick="exportExcel()"><div class="nav-icon">📊</div>Exportar Excel</button>
+  <button class="nav-btn" onclick="exportJSON()"><div class="nav-icon">💾</div>Exportar JSON</button>
+  <button class="nav-btn" onclick="importJSON()"><div class="nav-icon">📂</div>Importar JSON</button>
+
+  <div class="sidebar-bottom">
+    <button class="sb-action demo" id="btnDemo" onclick="toggleDemo()">
+      <span id="demoIcon">✨</span><span id="demoLabel">Cargar ejemplo</span>
+    </button>
+    <button class="sb-action" onclick="toggleTheme()">
+      <span id="themeIcon">🌙</span>Cambiar tema
+    </button>
+    <button class="sb-action danger" onclick="resetAll()">
+      🗑️ Resetear todo
+    </button>
+  </div>
+</aside>
+
+<!-- ════ MAIN ════ -->
+<div class="main">
+
+  <!-- Topbar -->
+  <header class="topbar">
+    <button class="icon-btn" id="menuBtn" onclick="openSidebar()">☰</button>
+    <div>
+      <div class="tb-title" id="topbarTitle">Resumen Global</div>
+      <div class="tb-sub" id="topbarSub">Visión consolidada de tu patrimonio</div>
+    </div>
+    <div class="topbar-spacer"></div>
+    <div class="search-wrap">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" id="searchBox" placeholder="Buscar banco…" oninput="filterBanks(this.value)">
+    </div>
+    <button class="icon-btn" onclick="toggleTheme()"><span id="themeIconTop">🌙</span></button>
+  </header>
+
+  <!-- KPI strip -->
+  <div class="kpi-wrap">
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-badge">🏦</div>
+        <div class="kpi-lbl">Total Corriente</div>
+        <div class="kpi-val" id="kpiCorr">—</div>
+        <div class="kpi-trend" id="kpiCorrT"></div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-badge">📈</div>
+        <div class="kpi-lbl">Total Inversión</div>
+        <div class="kpi-val" id="kpiInv">—</div>
+        <div class="kpi-trend" id="kpiInvT"></div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-badge">💹</div>
+        <div class="kpi-lbl">Rent. Media Pond.</div>
+        <div class="kpi-val" id="kpiRent">—</div>
+        <div class="kpi-trend" id="kpiRentT"></div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-badge">🏛️</div>
+        <div class="kpi-lbl">Patrimonio Total</div>
+        <div class="kpi-val" id="kpiTotal">—</div>
+        <div class="kpi-trend" id="kpiTotalT"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE: GLOBAL -->
+  <div class="page active" id="page-global">
+    <div class="sec-head">
+      <div class="sec-title">Resumen Global</div>
+      <div class="sec-sub">Evolución consolidada de todos los bancos</div>
+    </div>
+
+    <div class="g-stat-grid">
+      <div class="g-stat-card">
+        <span class="gs-icon">🏦</span>
+        <div class="gs-lbl">Bancos registrados</div>
+        <div class="gs-val" id="gsBancos">0</div>
+        <div class="gs-sub">entidades activas</div>
+      </div>
+      <div class="g-stat-card">
+        <span class="gs-icon">📅</span>
+        <div class="gs-lbl">Meses con datos</div>
+        <div class="gs-val" id="gsMeses">0</div>
+        <div class="gs-sub">histórico registrado</div>
+      </div>
+      <div class="g-stat-card">
+        <span class="gs-icon">🏆</span>
+        <div class="gs-lbl">Mejor mes (Δ)</div>
+        <div class="gs-val-sm" id="gsBest">—</div>
+        <div class="gs-sub">mayor crecimiento mensual</div>
+      </div>
+      <div class="g-stat-card">
+        <span class="gs-icon">💹</span>
+        <div class="gs-lbl">Rentabilidad máx.</div>
+        <div class="gs-val-sm" id="gsMaxRent">—</div>
+        <div class="gs-sub">mejor producto de inversión</div>
+      </div>
+    </div>
+
+    <div class="g-chart-big">
+      <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:6px">
+        <div class="chart-lbl" style="margin:0">Patrimonio Total</div>
+        <span style="font-size:10px;color:var(--muted)">evolución mensual</span>
+      </div>
+      <canvas id="gLine" height="110"></canvas>
+    </div>
+
+    <div class="g-charts-2">
+      <div class="g-chart-sm">
+        <div class="chart-lbl">Corriente vs Inversión</div>
+        <canvas id="gStacked" height="120"></canvas>
+      </div>
+      <div class="g-chart-sm">
+        <div class="chart-lbl">Variación mensual Δ</div>
+        <canvas id="gDelta" height="120"></canvas>
+      </div>
+    </div>
+
+    <div class="g-table-wrap">
+      <div style="padding:12px 16px;border-bottom:1px solid var(--border);font-size:12px;font-weight:700">Histórico mensual consolidado</div>
+      <div class="table-wrap">
+        <table id="globalTable">
+          <thead><tr><th>Mes</th><th>Corriente</th><th>Inversión</th><th>Rent. %</th><th>Patrimonio</th><th>Δ mes ant.</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE: CORRIENTES -->
+  <div class="page" id="page-corrientes">
+    <div class="sec-head">
+      <div class="sec-title">Cuentas Corrientes</div>
+      <div class="sec-sub">Saldos y evolución por banco</div>
+    </div>
+    <div class="mobile-search search-wrap" style="display:none;margin-bottom:12px">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" id="mSearchCorr" placeholder="Buscar banco…" oninput="filterBanks(this.value)">
+    </div>
+    <div class="form-panel">
+      <div class="fp-head" onclick="toggleFP('fpCorr',this)">
+        <h3>➕ Registrar — Cuenta Corriente</h3>
+        <span class="fp-arrow">▾</span>
+      </div>
+      <div class="fp-body" id="fpCorr">
+        <div class="field"><label>Banco</label><input id="cBanco" type="text" placeholder="BBVA, Santander…"></div>
+        <div class="field"><label>Mes</label><input id="cMes" type="month"></div>
+        <div class="field"><label>Balance (€)</label><input id="cBalance" type="number" step="0.01" placeholder="0.00"></div>
+        <div class="field" style="justify-content:flex-end"><button class="btn btn-primary" onclick="submitForm('Corriente')">Guardar</button></div>
+      </div>
+    </div>
+    <div class="banks-grid" id="bankListCorr"></div>
+  </div>
+
+  <!-- PAGE: INVERSIONES -->
+  <div class="page" id="page-inversiones">
+    <div class="sec-head">
+      <div class="sec-title">Inversiones</div>
+      <div class="sec-sub">Saldos, rentabilidad y evolución</div>
+    </div>
+    <div class="mobile-search search-wrap" style="display:none;margin-bottom:12px">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" id="mSearchInv" placeholder="Buscar banco…" oninput="filterBanks(this.value)">
+    </div>
+    <div class="form-panel">
+      <div class="fp-head" onclick="toggleFP('fpInv',this)">
+        <h3>➕ Registrar — Inversión</h3>
+        <span class="fp-arrow">▾</span>
+      </div>
+      <div class="fp-body" id="fpInv">
+        <div class="field"><label>Banco</label><input id="iBanco" type="text" placeholder="BBVA, Santander…"></div>
+        <div class="field"><label>Mes</label><input id="iMes" type="month"></div>
+        <div class="field"><label>Saldo (€)</label><input id="iBalance" type="number" step="0.01" placeholder="0.00"></div>
+        <div class="field"><label>Rentabilidad (%)</label><input id="iRent" type="number" step="0.01" placeholder="Opcional"></div>
+        <div class="field" style="justify-content:flex-end"><button class="btn btn-primary" onclick="submitForm('Inversión')">Guardar</button></div>
+      </div>
+    </div>
+    <div class="banks-grid" id="bankListInv"></div>
+  </div>
+
+</div><!-- /main -->
+</div><!-- /layout -->
+
+<div class="toast-container" id="toastWrap"></div>
+
+<script>
+/* ══════════════════════════════════
+   STORAGE & DATA
+══════════════════════════════════ */
+const SK='hubFin_v10', TK='hubThemePro';
+
+const DEMO={
+  "BBVA":[
+    {mes:"2024-04",tipo:"Corriente",balance:2100,rentabilidad:null},{mes:"2024-05",tipo:"Corriente",balance:2340,rentabilidad:null},{mes:"2024-06",tipo:"Corriente",balance:1980,rentabilidad:null},{mes:"2024-07",tipo:"Corriente",balance:2450,rentabilidad:null},{mes:"2024-08",tipo:"Corriente",balance:2200,rentabilidad:null},{mes:"2024-09",tipo:"Corriente",balance:2800,rentabilidad:null},{mes:"2024-10",tipo:"Corriente",balance:3100,rentabilidad:null},{mes:"2024-11",tipo:"Corriente",balance:2750,rentabilidad:null},{mes:"2024-12",tipo:"Corriente",balance:3400,rentabilidad:null},{mes:"2025-01",tipo:"Corriente",balance:3050,rentabilidad:null},{mes:"2025-02",tipo:"Corriente",balance:3280,rentabilidad:null},{mes:"2025-03",tipo:"Corriente",balance:3600,rentabilidad:null},
+    {mes:"2024-04",tipo:"Inversión",balance:5000,rentabilidad:2.5},{mes:"2024-05",tipo:"Inversión",balance:5200,rentabilidad:2.7},{mes:"2024-06",tipo:"Inversión",balance:5100,rentabilidad:2.4},{mes:"2024-07",tipo:"Inversión",balance:5350,rentabilidad:2.9},{mes:"2024-08",tipo:"Inversión",balance:5500,rentabilidad:3.1},{mes:"2024-09",tipo:"Inversión",balance:5800,rentabilidad:3.3},{mes:"2024-10",tipo:"Inversión",balance:5950,rentabilidad:3.2},{mes:"2024-11",tipo:"Inversión",balance:6100,rentabilidad:3.5},{mes:"2024-12",tipo:"Inversión",balance:6400,rentabilidad:3.8},{mes:"2025-01",tipo:"Inversión",balance:6250,rentabilidad:3.4},{mes:"2025-02",tipo:"Inversión",balance:6550,rentabilidad:3.7},{mes:"2025-03",tipo:"Inversión",balance:6900,rentabilidad:4.1}
+  ],
+  "Santander":[
+    {mes:"2024-04",tipo:"Corriente",balance:4200,rentabilidad:null},{mes:"2024-05",tipo:"Corriente",balance:4050,rentabilidad:null},{mes:"2024-06",tipo:"Corriente",balance:4400,rentabilidad:null},{mes:"2024-07",tipo:"Corriente",balance:4100,rentabilidad:null},{mes:"2024-08",tipo:"Corriente",balance:3800,rentabilidad:null},{mes:"2024-09",tipo:"Corriente",balance:4600,rentabilidad:null},{mes:"2024-10",tipo:"Corriente",balance:4900,rentabilidad:null},{mes:"2024-11",tipo:"Corriente",balance:4700,rentabilidad:null},{mes:"2024-12",tipo:"Corriente",balance:5200,rentabilidad:null},{mes:"2025-01",tipo:"Corriente",balance:4850,rentabilidad:null},{mes:"2025-02",tipo:"Corriente",balance:5100,rentabilidad:null},{mes:"2025-03",tipo:"Corriente",balance:5500,rentabilidad:null},
+    {mes:"2024-04",tipo:"Inversión",balance:12000,rentabilidad:4.2},{mes:"2024-05",tipo:"Inversión",balance:12500,rentabilidad:4.4},{mes:"2024-06",tipo:"Inversión",balance:12200,rentabilidad:4.1},{mes:"2024-07",tipo:"Inversión",balance:12800,rentabilidad:4.5},{mes:"2024-08",tipo:"Inversión",balance:13100,rentabilidad:4.7},{mes:"2024-09",tipo:"Inversión",balance:13500,rentabilidad:4.9},{mes:"2024-10",tipo:"Inversión",balance:13200,rentabilidad:4.6},{mes:"2024-11",tipo:"Inversión",balance:13800,rentabilidad:5.0},{mes:"2024-12",tipo:"Inversión",balance:14200,rentabilidad:5.2},{mes:"2025-01",tipo:"Inversión",balance:14000,rentabilidad:4.9},{mes:"2025-02",tipo:"Inversión",balance:14500,rentabilidad:5.1},{mes:"2025-03",tipo:"Inversión",balance:15000,rentabilidad:5.4}
+  ],
+  "CaixaBank":[
+    {mes:"2024-04",tipo:"Corriente",balance:1500,rentabilidad:null},{mes:"2024-07",tipo:"Corriente",balance:1750,rentabilidad:null},{mes:"2024-10",tipo:"Corriente",balance:2100,rentabilidad:null},{mes:"2025-01",tipo:"Corriente",balance:2150,rentabilidad:null},{mes:"2025-03",tipo:"Corriente",balance:2600,rentabilidad:null},
+    {mes:"2024-04",tipo:"Inversión",balance:3500,rentabilidad:1.8},{mes:"2024-07",tipo:"Inversión",balance:3700,rentabilidad:2.0},{mes:"2024-10",tipo:"Inversión",balance:3900,rentabilidad:2.2},{mes:"2025-01",tipo:"Inversión",balance:4100,rentabilidad:2.3},{mes:"2025-03",tipo:"Inversión",balance:4500,rentabilidad:2.8}
+  ],
+  "ING":[
+    {mes:"2024-07",tipo:"Corriente",balance:800,rentabilidad:null},{mes:"2024-09",tipo:"Corriente",balance:1100,rentabilidad:null},{mes:"2024-11",tipo:"Corriente",balance:1200,rentabilidad:null},{mes:"2025-01",tipo:"Corriente",balance:1250,rentabilidad:null},{mes:"2025-03",tipo:"Corriente",balance:1700,rentabilidad:null},
+    {mes:"2024-07",tipo:"Inversión",balance:7000,rentabilidad:3.8},{mes:"2024-09",tipo:"Inversión",balance:7500,rentabilidad:4.1},{mes:"2024-11",tipo:"Inversión",balance:7600,rentabilidad:4.2},{mes:"2025-01",tipo:"Inversión",balance:7700,rentabilidad:4.2},{mes:"2025-03",tipo:"Inversión",balance:8400,rentabilidad:4.8}
+  ],
+  "Sabadell":[
+    {mes:"2024-04",tipo:"Corriente",balance:600,rentabilidad:null},{mes:"2024-06",tipo:"Corriente",balance:680,rentabilidad:null},{mes:"2024-09",tipo:"Corriente",balance:900,rentabilidad:null},{mes:"2024-12",tipo:"Corriente",balance:1200,rentabilidad:null},{mes:"2025-03",tipo:"Corriente",balance:1400,rentabilidad:null}
+  ],
+  "Revolut":[
+    {mes:"2024-10",tipo:"Corriente",balance:350,rentabilidad:null},{mes:"2024-12",tipo:"Corriente",balance:500,rentabilidad:null},{mes:"2025-02",tipo:"Corriente",balance:460,rentabilidad:null},{mes:"2025-03",tipo:"Corriente",balance:610,rentabilidad:null},
+    {mes:"2024-10",tipo:"Inversión",balance:1500,rentabilidad:5.2},{mes:"2024-12",tipo:"Inversión",balance:1700,rentabilidad:5.6},{mes:"2025-02",tipo:"Inversión",balance:1750,rentabilidad:5.5},{mes:"2025-03",tipo:"Inversión",balance:1900,rentabilidad:5.8}
+  ]
+};
+
+let demoOn=false, demoBackup=null;
+(function(){try{if(!localStorage.getItem(SK))localStorage.setItem(SK,JSON.stringify({}))}catch(e){}})();
+let bancos=JSON.parse(localStorage.getItem(SK))||{};
+function save(){try{localStorage.setItem(SK,JSON.stringify(bancos))}catch(e){toast('Error al guardar','err')}}
+
+/* ══════════════════════════════════
+   THEME
+══════════════════════════════════ */
+let theme=localStorage.getItem(TK)||'light';
+applyTheme(theme);
+function applyTheme(t){
+  document.documentElement.setAttribute('data-theme',t==='dark'?'dark':'');
+  ['themeIcon','themeIconTop'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=t==='dark'?'☀️':'🌙'});
+}
+function toggleTheme(){
+  theme=theme==='dark'?'light':'dark';
+  try{localStorage.setItem(TK,theme)}catch(e){}
+  applyTheme(theme);
+}
+
+/* ══════════════════════════════════
+   HELPERS
+══════════════════════════════════ */
+const $=id=>document.getElementById(id);
+function numFmt(n){if(n==null||n==='')return'—';return Number(n).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €'}
+function fmtM(iso){if(!iso)return'—';const[y,m]=iso.split('-');return['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][+m-1]+' '+y}
+function monthsAsc(){const s=new Set();for(const b in bancos)bancos[b].forEach(r=>r.mes&&s.add(r.mes));return[...s].sort((a,b)=>a.localeCompare(b))}
+
+function toast(msg,type=''){
+  const t=document.createElement('div');
+  t.className='toast'+(type?' '+type:'');t.textContent=msg;
+  $('toastWrap').appendChild(t);
+  setTimeout(()=>t.remove(),3000);
+}
+
+/* ══════════════════════════════════
+   SIDEBAR
+══════════════════════════════════ */
+function openSidebar(){
+  $('sidebar').classList.add('open');
+  $('overlay').classList.add('on');
+  document.body.style.overflow='hidden';
+}
+function closeSidebar(){
+  $('sidebar').classList.remove('open');
+  $('overlay').classList.remove('on');
+  document.body.style.overflow='';
+}
+
+// Swipe gesture
+let _sx=0;
+document.addEventListener('touchstart',e=>{_sx=e.touches[0].clientX},{passive:true});
+document.addEventListener('touchend',e=>{
+  const dx=e.changedTouches[0].clientX-_sx;
+  if($('sidebar').classList.contains('open')&&dx<-50)closeSidebar();
+  else if(!$('sidebar').classList.contains('open')&&_sx<24&&dx>50)openSidebar();
+},{passive:true});
+
+/* ══════════════════════════════════
+   TABS
+══════════════════════════════════ */
+const TAB_META={
+  global:{title:'Resumen Global',sub:'Visión consolidada de tu patrimonio'},
+  corrientes:{title:'Cuentas Corrientes',sub:'Saldos y evolución por banco'},
+  inversiones:{title:'Inversiones',sub:'Saldos, rentabilidad y evolución'}
+};
+function switchTab(tab){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  $('page-'+tab).classList.add('active');
+  document.querySelectorAll('.nav-btn[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
+  const m=TAB_META[tab];
+  $('topbarTitle').textContent=m.title;
+  $('topbarSub').textContent=m.sub;
+}
+function desktopTab(tab){switchTab(tab)}
+function mobileTab(tab,btn){
+  switchTab(tab);
+  closeSidebar();
+  ['bnGlobal','bnCorrientes','bnInversiones','bnMenu'].forEach(id=>$(id)&&$(id).classList.remove('active'));
+  btn.classList.add('active');
+}
+
+/* ══════════════════════════════════
+   FORM PANEL
+══════════════════════════════════ */
+function toggleFP(bodyId,head){
+  const b=$(bodyId),closed=b.classList.toggle('closed');
+  head.classList.toggle('closed',closed);
+}
+
+/* ══════════════════════════════════
+   SUBMIT
+══════════════════════════════════ */
+function submitForm(tipo){
+  const isC=tipo==='Corriente';
+  const banco=(isC?$('cBanco'):$('iBanco')).value.trim();
+  const mes=(isC?$('cMes'):$('iMes')).value;
+  const balance=parseFloat((isC?$('cBalance'):$('iBalance')).value);
+  const rentRaw=isC?'':$('iRent').value;
+  const rent=(rentRaw==='')?null:parseFloat(rentRaw);
+  if(!banco||!mes||isNaN(balance)){toast('Completa los campos requeridos','err');return}
+  if(!bancos[banco])bancos[banco]=[];
+  const idx=bancos[banco].findIndex(r=>r.mes===mes&&r.tipo===tipo);
+  if(idx>-1){
+    if(!confirm('Ya existe esta entrada. ¿Sobrescribir?'))return;
+    bancos[banco][idx]={mes,tipo,balance,rentabilidad:rent};
+    toast('Registro actualizado ✓','ok');
+  } else {
+    bancos[banco].push({mes,tipo,balance,rentabilidad:rent});
+    toast('Registro guardado ✓','ok');
+  }
+  save();renderAll();
+  if(isC){$('cBanco').value='';$('cBalance').value=''}
+  else{$('iBanco').value='';$('iBalance').value='';$('iRent').value=''}
+}
+
+/* ══════════════════════════════════
+   DELETE
+══════════════════════════════════ */
+function delRow(banco,mes,tipo,balance,rent){
+  if(!confirm('¿Eliminar este registro?'))return;
+  const idx=bancos[banco].findIndex(r=>
+    r.mes===mes&&r.tipo===tipo&&
+    Number(r.balance)===Number(balance)&&
+    (r.rentabilidad==null?rent=='null':Number(r.rentabilidad)===Number(rent))
+  );
+  if(idx>-1){
+    bancos[banco].splice(idx,1);
+    if(!bancos[banco].length)delete bancos[banco];
+    save();renderAll();toast('Registro eliminado');
+  } else toast('No se encontró el registro','err');
+}
+
+/* ══════════════════════════════════
+   SEARCH
+══════════════════════════════════ */
+function filterBanks(q){
+  q=(q||$('searchBox').value||'').toLowerCase().trim();
+  $('searchBox').value=q;
+  ['mSearchCorr','mSearchInv'].forEach(id=>{const el=$(id);if(el&&el.value!==q)el.value=q});
+  document.querySelectorAll('.bank-card').forEach(c=>{
+    c.style.display=(!q||(c.dataset.bank||'').includes(q))?'':'none';
+  });
+}
+
+/* ══════════════════════════════════
+   KPIs
+══════════════════════════════════ */
+function renderKPIs(){
+  const months=monthsAsc();
+  if(!months.length){['kpiCorr','kpiInv','kpiRent','kpiTotal'].forEach(id=>$(id).textContent='—');return}
+  const last=months[months.length-1],prev=months.length>1?months[months.length-2]:null;
+  let corr=0,inv=0,pC=0,pI=0,wr=0,ws=0;
+  for(const b in bancos)bancos[b].forEach(r=>{
+    if(r.mes===last){
+      if(r.tipo==='Corriente')corr+=Number(r.balance);
+      else{inv+=Number(r.balance);if(r.rentabilidad!=null){wr+=Number(r.balance)*Number(r.rentabilidad);ws+=Number(r.balance)}}
+    }
+    if(r.mes===prev){if(r.tipo==='Corriente')pC+=Number(r.balance);else pI+=Number(r.balance)}
+  });
+  function setK(vId,tId,val,pval){
+    $(vId).textContent=numFmt(val);
+    const t=$(tId);
+    if(pval!=null&&pval>0){const d=val-pval,p=((d/pval)*100).toFixed(1);t.className='kpi-trend '+(d>=0?'up':'down');t.textContent=(d>=0?'↑':'↓')+' '+numFmt(Math.abs(d))+' ('+Math.abs(p)+'%)'}else t.textContent='';
+  }
+  setK('kpiCorr','kpiCorrT',corr,pC);
+  setK('kpiInv','kpiInvT',inv,pI);
+  setK('kpiTotal','kpiTotalT',corr+inv,pC+pI);
+  const rent=ws>0?wr/ws:null;
+  if(rent!=null){$('kpiRent').textContent=rent.toFixed(2)+' %';$('kpiRentT').className='kpi-trend '+(rent>=0?'up':'down');$('kpiRentT').textContent='rentabilidad ponderada'}
+  else{$('kpiRent').textContent='—';$('kpiRentT').textContent=''}
+}
+
+/* ══════════════════════════════════
+   CHARTS
+══════════════════════════════════ */
+const CH={};
+function destroyC(id){if(CH[id]){CH[id].destroy();delete CH[id]}}
+const isDark=()=>document.documentElement.getAttribute('data-theme')==='dark';
+function lineColor(){return isDark()?'#4eedbe':'#0a5c4a'}
+function mkLine(data,color){return{data,borderColor:color,backgroundColor:color+'15',fill:true,tension:.32,borderWidth:2,pointRadius:3,pointBackgroundColor:color,pointBorderColor:'var(--surface)',pointBorderWidth:2}}
+const scaleOpts={x:{ticks:{color:'#888',font:{size:9,family:'Sora'}},grid:{color:'rgba(128,128,128,.06)'}},y:{ticks:{color:'#888',font:{size:9,family:'Sora'},callback:v=>'€'+Math.round(v/1000)+'k'},grid:{color:'rgba(128,128,128,.06)'},beginAtZero:false}};
+
+/* ══════════════════════════════════
+   GLOBAL PAGE
+══════════════════════════════════ */
+function renderGlobal(){
+  const months=monthsAsc();
+  $('gsBancos').textContent=Object.keys(bancos).length;
+  $('gsMeses').textContent=months.length;
+
+  const rows=months.map(m=>{
+    let sc=0,si=0,wr=0,ws=0;
+    for(const b in bancos)bancos[b].forEach(r=>{
+      if(r.mes!==m)return;
+      if(r.tipo==='Corriente')sc+=Number(r.balance);
+      else{si+=Number(r.balance);if(r.rentabilidad!=null){wr+=Number(r.balance)*Number(r.rentabilidad);ws+=Number(r.balance)}}
+    });
+    return{mes:m,sc,si,rent:ws>0?wr/ws:null,total:sc+si};
+  });
+
+  if(rows.length>1){
+    let bi=1,bd=-Infinity;
+    for(let i=1;i<rows.length;i++){const d=rows[i].total-rows[i-1].total;if(d>bd){bd=d;bi=i}}
+    $('gsBest').textContent=fmtM(rows[bi].mes)+'\n+'+numFmt(bd);
+  } else $('gsBest').textContent='—';
+
+  let mr=-Infinity,mrB='';
+  for(const b in bancos)bancos[b].forEach(r=>{if(r.tipo==='Inversión'&&r.rentabilidad!=null&&Number(r.rentabilidad)>mr){mr=Number(r.rentabilidad);mrB=b}});
+  $('gsMaxRent').textContent=mr>-Infinity?mr.toFixed(2)+'%\n'+mrB:'—';
+
+  // table
+  const tbody=$('globalTable').querySelector('tbody');tbody.innerHTML='';
+  rows.forEach((r,i)=>{
+    const prev=i>0?rows[i-1]:null,delta=prev?r.total-prev.total:null;
+    const rf=r.rent!=null?`<span class="chip ${r.rent>=0?'chip-green':'chip-red'}">${r.rent.toFixed(2)}%</span>`:'<span class="chip chip-gray">—</span>';
+    const df=delta!=null?`<span class="chip ${delta>=0?'chip-green':'chip-red'}">${delta>=0?'+':''}${numFmt(delta)}</span>`:'<span class="chip chip-gray">—</span>';
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td style="font-family:var(--mono)">${fmtM(r.mes)}</td><td style="font-family:var(--mono)">${numFmt(r.sc)}</td><td style="font-family:var(--mono)">${numFmt(r.si)}</td><td>${rf}</td><td style="font-family:var(--mono)">${numFmt(r.total)}</td><td>${df}</td>`;
+    tbody.appendChild(tr);
+  });
+
+  // charts
+  destroyC('gLine');destroyC('gStacked');destroyC('gDelta');
+  if(!rows.length)return;
+  const labels=rows.map(r=>fmtM(r.mes));
+  const totals=rows.map(r=>r.total);
+  const lc=lineColor();
+
+  CH['gLine']=new Chart($('gLine'),{type:'line',data:{labels,datasets:[{...mkLine(totals,lc),label:'Patrimonio'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(0,0,0,.75)',titleColor:'#fff',bodyColor:'#aaa',callbacks:{label:ctx=>{const i=ctx.dataIndex,p=i>0?totals[i-1]:null;let s=' €'+ctx.raw.toLocaleString('es-ES',{minimumFractionDigits:0});if(p){const d=ctx.raw-p,pct=((d/p)*100).toFixed(1);s+=` (${d>=0?'+':''}${Math.round(d).toLocaleString('es-ES')} €, ${d>=0?'+':''}${pct}%)`}return s}}}},scales:scaleOpts}});
+
+  CH['gStacked']=new Chart($('gStacked'),{type:'bar',data:{labels,datasets:[{label:'Corriente',data:rows.map(r=>r.sc),backgroundColor:isDark()?'rgba(56,189,248,.7)':'rgba(37,99,235,.6)',borderRadius:3,stack:'s'},{label:'Inversión',data:rows.map(r=>r.si),backgroundColor:isDark()?'rgba(251,191,36,.7)':'rgba(217,119,6,.6)',borderRadius:3,stack:'s'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'top',labels:{color:isDark()?'#aaa':'#555',font:{size:9,family:'Sora'},boxWidth:8,padding:10}},tooltip:{backgroundColor:'rgba(0,0,0,.75)',titleColor:'#fff',bodyColor:'#aaa',callbacks:{label:ctx=>' €'+Math.round(ctx.raw).toLocaleString('es-ES')}}},scales:{x:{stacked:true,ticks:{color:'#888',font:{size:9}},grid:{display:false}},y:{stacked:true,ticks:{color:'#888',font:{size:9},callback:v=>'€'+Math.round(v/1000)+'k'},grid:{color:'rgba(128,128,128,.05)'}}}}});
+
+  const deltas=totals.map((v,i)=>i===0?0:v-totals[i-1]);
+  CH['gDelta']=new Chart($('gDelta'),{type:'bar',data:{labels,datasets:[{data:deltas,backgroundColor:deltas.map((v,i)=>i===0?'rgba(128,128,128,.3)':v>=0?'rgba(22,163,74,.7)':'rgba(220,38,38,.7)'),borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(0,0,0,.75)',titleColor:'#fff',bodyColor:'#aaa',callbacks:{label:ctx=>(ctx.raw>=0?'+':'')+' €'+Math.round(ctx.raw).toLocaleString('es-ES')}}},scales:{x:{ticks:{color:'#888',font:{size:9}},grid:{display:false}},y:{ticks:{color:'#888',font:{size:9},callback:v=>(v>=0?'+':'')+Math.round(v/1000)+'k'},grid:{color:'rgba(128,128,128,.05)'},beginAtZero:true}}}});
+}
+
+/* ══════════════════════════════════
+   BANK CARDS
+══════════════════════════════════ */
+function renderCards(tipo,containerId){
+  const cont=$(containerId);cont.innerHTML='';
+  const list=Object.keys(bancos).filter(b=>bancos[b].some(r=>r.tipo===tipo));
+  if(!list.length){
+    cont.innerHTML=`<div class="empty"><div class="empty-icon">🏦</div><div class="empty-title">Sin datos</div><div class="empty-sub">Añade tu primer registro usando el formulario de arriba.</div></div>`;return;
+  }
+  list.forEach((banco,ci)=>{
+    const data=bancos[banco].filter(r=>r.tipo===tipo).sort((a,b)=>a.mes.localeCompare(b.mes));
+    const last=data[data.length-1],prev=data.length>1?data[data.length-2]:null;
+    const diff=prev?last.balance-prev.balance:null;
+    const initials=banco.slice(0,2).toUpperCase();
+    // unique card id safe for DOM
+    const cid=(banco+'_'+tipo.slice(0,1)).replace(/[^a-zA-Z0-9]/g,'_');
+    const diffHTML=diff!=null?`<span class="chip ${diff>=0?'chip-green':'chip-red'}">${diff>=0?'↑':'↓'} ${numFmt(Math.abs(diff))}</span>`:'';
+    const rows=data.map((r,i)=>{
+      const res=i>0?r.balance-data[i-1].balance:null;
+      const rH=tipo==='Inversión'&&r.rentabilidad!=null?`<span class="chip ${Number(r.rentabilidad)>=0?'chip-green':'chip-red'}">${Number(r.rentabilidad).toFixed(2)}%</span>`:'<span class="chip chip-gray">—</span>';
+      const dH=res!=null?`<span class="chip ${res>=0?'chip-green':'chip-red'}">${res>=0?'↑':'↓'} ${numFmt(Math.abs(res))}</span>`:'<span class="chip chip-gray">—</span>';
+      return`<tr><td style="font-family:var(--mono)">${fmtM(r.mes)}</td><td style="font-family:var(--mono)">${numFmt(r.balance)}</td>${tipo==='Inversión'?`<td>${rH}</td>`:''}<td>${dH}</td><td><button class="btn btn-xs btn-danger" onclick="delRow('${banco}','${r.mes}','${r.tipo}',${r.balance},'${r.rentabilidad}')">✕</button></td></tr>`;
+    }).join('');
+
+    const card=document.createElement('div');
+    card.className='bank-card';
+    card.dataset.bank=banco.toLowerCase();
+    card.style.animationDelay=(ci*.04)+'s';
+    card.innerHTML=`
+      <div class="bch" id="head_${cid}">
+        <div class="bavatar">${initials}</div>
+        <div><div class="bname">${banco}</div><div class="bmeta">${data.length} registros · ${tipo}</div></div>
+        <div class="bsum"><div class="bbal">${numFmt(last.balance)}</div><div style="margin-top:3px">${diffHTML}</div></div>
+        <span class="bexp">▾</span>
+      </div>
+      <div class="bbody" id="body_${cid}">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Mes</th><th>Balance</th>${tipo==='Inversión'?'<th>Rent. %</th>':''}<th>Resultado</th><th></th></tr></thead>
+            <tbody>${rows}</tbody>
+            <tfoot><tr><td>Total</td><td style="font-family:var(--mono)">${numFmt(data.reduce((s,r)=>s+Number(r.balance),0))}</td>${tipo==='Inversión'?'<td>—</td>':''}<td colspan="2">—</td></tr></tfoot>
+          </table>
+        </div>
+        <div class="charts-row">
+          <div class="chart-box"><div class="chart-lbl">Evolución balance</div><canvas id="cl_${cid}" height="150"></canvas></div>
+          <div class="chart-box"><div class="chart-lbl">${tipo==='Inversión'?'Rentabilidad (%)':'Δ Balance'}</div><canvas id="cb_${cid}" height="150"></canvas></div>
+        </div>
+      </div>`;
+    // toggle
+    card.querySelector('.bch').addEventListener('click',()=>{
+      const head=card.querySelector('.bch');
+      const body=card.querySelector('.bbody');
+      const open=body.classList.toggle('open');
+      head.classList.toggle('open',open);
+      if(open)requestAnimationFrame(()=>buildCardCharts(data,tipo,'cl_'+cid,'cb_'+cid));
+    });
+    cont.appendChild(card);
+  });
+}
+
+function buildCardCharts(data,tipo,lineId,barId){
+  const labels=data.map(r=>fmtM(r.mes));
+  const bals=data.map(r=>Number(r.balance));
+  const lc=lineColor();
+  destroyC(lineId);
+  CH[lineId]=new Chart($(lineId),{type:'line',data:{labels,datasets:[{...mkLine(bals,lc)}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:scaleOpts}});
+  destroyC(barId);
+  if(tipo==='Inversión'){
+    const rents=data.map(r=>r.rentabilidad!=null?Number(r.rentabilidad):null);
+    CH[barId]=new Chart($(barId),{type:'bar',data:{labels,datasets:[{data:rents,backgroundColor:rents.map(v=>v!=null&&v>=0?'rgba(22,163,74,.7)':'rgba(220,38,38,.7)'),borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:scaleOpts.x,y:{ticks:{color:'#888',font:{size:9},callback:v=>v+'%'},grid:{color:'rgba(128,128,128,.06)'},beginAtZero:true}}}});
+  } else {
+    const deltas=bals.map((v,i)=>i===0?null:v-bals[i-1]);
+    CH[barId]=new Chart($(barId),{type:'bar',data:{labels,datasets:[{data:deltas,backgroundColor:deltas.map((v,i)=>i===0?'rgba(128,128,128,.3)':v>=0?'rgba(22,163,74,.7)':'rgba(220,38,38,.7)'),borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:scaleOpts}});
+  }
+}
+
+/* ══════════════════════════════════
+   RENDER ALL
+══════════════════════════════════ */
+function renderAll(){renderKPIs();renderGlobal();renderCards('Corriente','bankListCorr');renderCards('Inversión','bankListInv')}
+
+/* ══════════════════════════════════
+   EXPORTS / IMPORT
+══════════════════════════════════ */
+function dl(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click()}
+function exportCSV(){
+  let csv='Banco,Mes,Tipo,Balance,Rentabilidad\n';
+  for(const b in bancos)bancos[b].forEach(r=>csv+=`${b},${r.mes},${r.tipo},${r.balance},${r.rentabilidad??''}\n`);
+  dl(new Blob([csv],{type:'text/csv;charset=utf-8;'}),'hub_financiero.csv');toast('CSV exportado ✓','ok');
+}
+function exportExcel(){
+  const wb=XLSX.utils.book_new();
+  for(const b in bancos){const s=bancos[b].map(r=>({Mes:r.mes,Tipo:r.tipo,Balance:r.balance,Rentabilidad:r.rentabilidad??''}));XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(s),b.slice(0,31))}
+  const ms=monthsAsc();
+  const gr=ms.map(m=>{let sc=0,si=0,wr=0,ws=0;for(const b in bancos)bancos[b].forEach(r=>{if(r.mes===m){if(r.tipo==='Corriente')sc+=Number(r.balance);else{si+=Number(r.balance);if(r.rentabilidad!=null){wr+=Number(r.balance)*Number(r.rentabilidad);ws+=Number(r.balance)}}}});return{Mes:m,Corriente:sc,Inversion:si,RentMedia:ws>0?(wr/ws).toFixed(2):'',Patrimonio:sc+si}});
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(gr),'Global');XLSX.writeFile(wb,'hub_financiero_pro.xlsx');toast('Excel exportado ✓','ok');
+}
+function exportJSON(){dl(new Blob([JSON.stringify(bancos,null,2)],{type:'application/json'}),'hub_financiero_pro.json');toast('JSON exportado ✓','ok')}
+function importJSON(){
+  const inp=document.createElement('input');inp.type='file';inp.accept='.json';
+  inp.onchange=e=>{
+    const f=e.target.files[0];if(!f)return;
+    const r=new FileReader();
+    r.onload=ev=>{try{const p=JSON.parse(ev.target.result);if(typeof p!=='object'||Array.isArray(p))throw new Error('Formato no válido');bancos=p;save();renderAll();toast('Datos importados ✓','ok')}catch(err){toast('Error: '+err.message,'err')}};
+    r.readAsText(f);
+  };inp.click();
+}
+
+/* ══════════════════════════════════
+   RESET & DEMO
+══════════════════════════════════ */
+function resetAll(){
+  if(!confirm('¿Eliminar TODOS los datos?'))return;
+  bancos={};save();renderAll();
+  demoOn=false;demoBackup=null;
+  $('btnDemo').classList.remove('on');
+  $('demoIcon').textContent='✨';$('demoLabel').textContent='Cargar ejemplo';
+  toast('Datos eliminados');
+}
+function toggleDemo(){
+  if(!demoOn){
+    demoBackup=JSON.parse(JSON.stringify(bancos));
+    bancos=JSON.parse(JSON.stringify(DEMO));
+    save();demoOn=true;
+    $('btnDemo').classList.add('on');
+    $('demoIcon').textContent='✖️';$('demoLabel').textContent='Quitar ejemplo';
+    toast('Ejemplo cargado — 6 bancos · 12 meses','ok');
+  } else {
+    bancos=demoBackup?JSON.parse(JSON.stringify(demoBackup)):{};
+    demoBackup=null;save();demoOn=false;
+    $('btnDemo').classList.remove('on');
+    $('demoIcon').textContent='✨';$('demoLabel').textContent='Cargar ejemplo';
+    toast('Ejemplo eliminado — datos restaurados');
+  }
+  renderAll();
+  if(window.innerWidth<=768)closeSidebar();
+}
+
+/* ══════════════════════════════════
+   INIT
+══════════════════════════════════ */
+const today=new Date().toISOString().slice(0,7);
+['cMes','iMes'].forEach(id=>{const el=$(id);if(el)el.value=today});
+renderAll();
+// viewport real en móvil
+function setVH(){
+  document.documentElement.style.setProperty('--vh', window.innerHeight * 0.01 + 'px');
+}
+window.addEventListener('resize', setVH);
+setVH();
+
+// cerrar sidebar al rotar
+window.addEventListener('orientationchange', closeSidebar);
+</script>
+</body>
+</html>
